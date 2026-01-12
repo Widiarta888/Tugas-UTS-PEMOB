@@ -1,20 +1,36 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { supabase } from "../../lib/supabase";
 
 export default function MenuBurger() {
   const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
 
   const handleNavigate = (path: string): void => {
-  setMenuVisible(false);
-  router.push(path as any);
-};
+    setMenuVisible(false);
+    router.push(path as any);
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    try {
+      setMenuVisible(false); 
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        Alert.alert("Error", error.message);
+      } else {
+        router.replace("/login");
+      }
+    } catch (err) {
+      Alert.alert("Error", "Terjadi kesalahan saat logout.");
+      console.error(err);
+    }
+  };
 
   return (
     <>
-      {/* Tombol Burger */}
       <TouchableOpacity
         style={styles.menuButton}
         onPress={() => setMenuVisible(true)}
@@ -22,7 +38,6 @@ export default function MenuBurger() {
         <Ionicons name="menu" size={22} color="#333" />
       </TouchableOpacity>
 
-      {/* Overlay Menu */}
       <Modal
         visible={menuVisible}
         transparent
@@ -42,32 +57,35 @@ export default function MenuBurger() {
               <Ionicons name="close" size={22} color="#000" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate("/home")}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/home")}>
               <Text style={styles.menuText}>🏠 Home</Text>
             </TouchableOpacity>
 
-             <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate("/katalog")}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/katalog")}>
               <Text style={styles.menuText}>🧥 Katalog</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate("/keranjang")}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/keranjang")}>
               <Text style={styles.menuText}>🛒 Keranjang</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate("/transaksi")}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/transaksi")}>
               <Text style={styles.menuText}>💳 Transaksi</Text>
+            </TouchableOpacity>
+
+            {/* Menu Navigasi ke Halaman Admin */}
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/admin")}>
+              <Text style={styles.menuText}>⚙️ Admin Panel</Text>
+            </TouchableOpacity>
+
+            <View style={styles.separator} />
+
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={18} color="#fff" style={{marginRight: 8}} />
+              <Text style={styles.logoutButtonText}>LOGOUT</Text>
             </TouchableOpacity>
 
           </View>
@@ -85,31 +103,55 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-start",
     alignItems: "flex-end",
   },
   menuContainer: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 16,
-    width: 180,
-    marginTop: 60,
+    borderRadius: 16,
+    padding: 20,
+    width: 200,
+    marginTop: 65,
     marginRight: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
   closeButton: {
     alignSelf: "flex-end",
+    marginBottom: 10,
   },
   menuItem: {
-    marginTop: 10,
+    paddingVertical: 12,
   },
   menuText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#000",
+    color: "#333",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#eee",
+    marginVertical: 15,
+  },
+  logoutButton: {
+    backgroundColor: "#ff4444",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: "#ff4444",
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 1,
   },
 });

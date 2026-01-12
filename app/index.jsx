@@ -16,7 +16,7 @@ export default function Home() {
       <Text style={{ fontSize: 24, marginBottom: 20}}>Selamat Datang di Jacket4Sale</Text>
 
       <TouchableOpacity
-        onPress={() => router.push("/home")}
+        onPress={() => router.push("/login")}
         style={{
           backgroundColor: "black",
           padding: 10,

@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -12,31 +13,59 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MenuBurger from "./component/menuBurger";
+// Import supabase client
+import { supabase } from "../lib/supabase";
 
 export default function Katalog() {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<any[]>([]); // State untuk data dari Supabase
+  const [loading, setLoading] = useState(true);
 
+  // Ambil data dari Supabase saat komponen dibuka
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter pencarian berdasarkan nama
   const filteredProducts = products.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const renderItem = ({ item, index }: any) => (
+  const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.productCard}
       onPress={() =>
         router.push({
           pathname: "/detail",
-          params: {
-            name: item.name,
-            price: item.price,
-            id: index.toString(),
-          },
+          params: { id: item.id }, // Kirim ID saja agar halaman detail bisa fetch ulang data lengkap
         })
       }
     >
-      <Image source={item.image} style={styles.productImage} resizeMode="cover" />
-      <Text style={styles.productName}>{item.name}</Text>
+      {/* Menggunakan uri karena gambar dari database berbentuk link URL */}
+      <Image 
+        source={{ uri: item.image_url }} 
+        style={styles.productImage} 
+        resizeMode="cover" 
+      />
+      <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
       <Text style={styles.productPrice}>Rp {item.price.toLocaleString()}</Text>
     </TouchableOpacity>
   );
@@ -60,53 +89,30 @@ export default function Katalog() {
         <MenuBurger />
       </View>
 
-      {/* Product List */}
-      <FlatList
-        data={filteredProducts}
-        renderItem={renderItem}
-        keyExtractor={(_, index) => index.toString()}
-        numColumns={2}
-        showsVerticalScrollIndicator={false}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        contentContainerStyle={{ marginTop: 15, paddingBottom: 20 }}
-      />
-
+      {/* Loading State */}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <ActivityIndicator size="large" color="#000" />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredProducts}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          showsVerticalScrollIndicator={false}
+          columnWrapperStyle={{ justifyContent: "space-between" }}
+          contentContainerStyle={{ marginTop: 15, paddingBottom: 20 }}
+          ListEmptyComponent={
+            <Text style={{ textAlign: "center", marginTop: 20, color: "#777" }}>
+              Tidak ada produk ditemukan.
+            </Text>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
-
-const products = [
-  {
-    name: "Green Olive Bomber Jacket",
-    price: 200000,
-    image: require("../assets/images/bomber2.png"),
-  },
-  {
-    name: "Black Bomber Jacket",
-    price: 200000,
-    image: require("../assets/images/bomber1.png"),
-  },
-  {
-    name: "Denim Jacket Dark Theme",
-    price: 174000,
-    image: require("../assets/images/denim2.png"),
-  },
-  {
-    name: "Denim Jacket",
-    price: 155000,
-    image: require("../assets/images/denim1.png"),
-  },
-  {
-    name: "Blue Denim Sherpa Jacket",
-    price: 210000,
-    image: require("../assets/images/sherpa2.png"),
-  },
-  {
-    name: "Black Denim Sherpa Jacket",
-    price: 214000,
-    image: require("../assets/images/sherpa1.png"),
-  },
-];
 
 const styles = StyleSheet.create({
   container: {
@@ -140,11 +146,18 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 14,
     width: "48%",
+    // Menambah bayangan halus agar mirip desain Anda
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   productImage: {
     width: "100%",
     height: 150,
     borderRadius: 10,
+    backgroundColor: "#eee", // Placeholder saat loading gambar
   },
   productName: {
     fontSize: 13,
